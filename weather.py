@@ -1,47 +1,56 @@
 from os import path
 import zipfile
 import sys
-from termcolor import colored, cprint
+from termcolor import colored
 
-class Weatherman:
 
-    file_pre = "Murree_weather_"
+class Weatherman:  # Weatherman Application in one class
+
+    file_pre = "Murree_weather_"  # The part of the file name that is same for all files
+
+    # Dictionaries as class instances to store calculation results
     e_result = dict()
     a_result = dict()
     c_result = dict()
 
+    # Initialize Lists in these indexes of dictionary
     c_result["max_temp"] = []
     c_result["min_temp"] = []
 
+    # List with months to access by numerical form
     months = ["Jan", "Feb", "Mar",
               "Apr", "May", "Jun",
               "Jul", "Aug", "Sep",
               "Oct", "Nov", "Dec"
               ]
 
-
-    def __init__(self,path, e, a, c):
+    # Class Constructor
+    def __init__(self, path, e, a, c, b):
         self.__path = path
         self.__e = e
         self.__a = a
         self.__c = c
+        self.__b = b
 
-
+    # Method to extract weather files to specified path
     def Extract(self):
         # Extract the weatherman.zip file to path
         with zipfile.ZipFile("weatherfiles.zip", 'r') as zip_ref:
             zip_ref.extractall(self.__path)
 
+    # Method to Print report of calculated results
+    def Print_report(self, mode):
 
-    def Print_report(selfs,mode):
+        # Checking which argument is true to print accordingly
         if mode == "e":
 
             high_date = Weatherman.e_result['maxdate']
             low_date = Weatherman.e_result['mindate']
 
-            high_date = high_date.split("-")
+            high_date = high_date.split("-")  # Separating date into day, month and year
             low_date = low_date.split("-")
 
+            # Making use of format strings to output results
             print(f"""
                 Highest: {Weatherman.e_result['maxtemp']}C on {Weatherman.months[int(high_date[1])-1]} {high_date[2]}
                 Lowest: {Weatherman.e_result['mintemp']}C on {Weatherman.months[int(low_date[1])-1]} {low_date[2]}
@@ -60,27 +69,41 @@ class Weatherman:
             max_pad = ""
             min_pad = ""
 
+            # Run loop for all the days logged
             for i in range(len(Weatherman.c_result["max_temp"])):
-                if i > 30:
+                if i > 30:  # Break if days somehow exceed 31 days
                     break
 
+                # Making '+' Strings to pad to output
                 for j in range(Weatherman.c_result["max_temp"][i]):
                     max_pad += "+"
 
                 for j in range(Weatherman.c_result["min_temp"][i]):
                     min_pad += "+"
 
+                # Adding color to strings
                 max_pad = colored(max_pad, 'red')
                 min_pad = colored(min_pad, 'blue')
-                print(f"""
+
+                # If !b, Print according to c argument, else print according to bonus task
+                if self.__b == 0:
+                    print(f"""
                     {i+1} {max_pad} {Weatherman.c_result["max_temp"][i]}C
                     {i+1} {min_pad} {Weatherman.c_result["min_temp"][i]}C""")
 
-                max_pad = ""
-                min_pad = ""
+                    max_pad = ""
+                    min_pad = ""
+                else:
+                    print(f"""
+                    {i + 1} {min_pad}{max_pad} {Weatherman.c_result["min_temp"][i]}C - {Weatherman.c_result["max_temp"][i]}C""")
 
-    def Reader(self,mode):
+                    max_pad = ""
+                    min_pad = ""
 
+    # Method to read lines from the file and return
+    def Reader(self, mode):
+
+        # path to file till the common part of all files
         pth = self.__path + "/weatherfiles/" + Weatherman.file_pre
         exist = False
         date = ""
@@ -134,6 +157,7 @@ class Weatherman:
 
         return mult_lines
 
+    # Method that calculates the read data
     def Calculate_Results(self, mode):
 
         if mode == "e":
@@ -211,6 +235,7 @@ class Weatherman:
                         Weatherman.c_result['min_temp'].append(int(lst[3]))
             self.Print_report("c")
 
+    # The method main calls to start the code
     def run(self):
         self.Extract()
 
