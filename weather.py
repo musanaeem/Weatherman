@@ -7,19 +7,7 @@ import zipfile
 
 class Weatherman:  # Weatherman Application in one class
 
-    file_pre = "Murree_weather_"  # The part of the file name that is same for all files
-
-    # Dictionaries as class instances to store calculation results
-    e_result = dict()
-    a_result = dict()
-    c_result = dict()
-
-    # Report Number to print
-    report_num = 1
-
-    # Initialize Lists in these indexes of dictionary
-    c_result["max_temp"] = []
-    c_result["min_temp"] = []
+    file_name_prefix = "Murree_weather_"  # The part of the file name that is same for all files
 
     # List with months to access by numerical form
     months = ["Jan", "Feb", "Mar",
@@ -29,32 +17,44 @@ class Weatherman:  # Weatherman Application in one class
               ]
 
     # Class Constructor
-    def __init__(self, path, e, a, c, b):
+    def __init__(self, path, highest_argument, average_argument, chart_form_argument, chart_form_combined):
         self.__path = path
-        self.__e = e
-        self.__a = a
-        self.__c = c
-        self.__b = b
+        self.__highest_argument = highest_argument
+        self.__average_argument = average_argument
+        self.__chart_form_argument = chart_form_argument
+        self.__chart_form_combined = chart_form_combined
 
         # Variables used to cater multiple inputs of a specific argument
         self.__curr_e = None
         self.__curr_a = None
         self.__curr_c = None
 
+        # Dictionaries as class instances to store calculation results
+        self.highest_argument_result = dict()
+        self.average_argument_result = dict()
+        self.chart_form_argument_results = dict()
+
+        # Initialize Lists in these indexes of dictionary
+        self.chart_form_argument_results["max_temp"] = []
+        self.chart_form_argument_results["min_temp"] = []
+
+        # Report Number to print
+        self.report_num = 1
+
     # Method to extract weather files to specified path
-    def Extract(self):
+    def extract_files(self):
         # Extract the weatherman.zip file to path
         with zipfile.ZipFile("weatherfiles.zip", 'r') as zip_ref:
             zip_ref.extractall(self.__path)
 
     # Method to get data to print from class level data structures according to mode passed
-    def getData(self, mode):
+    def get_data(self, mode):
         if mode == "e":
 
-            high_date = Weatherman.e_result['maxdate']
-            low_date = Weatherman.e_result['mindate']
-            high_temp = Weatherman.e_result['maxtemp']
-            low_temp = abs(Weatherman.e_result['mintemp'])
+            high_date = self.highest_argument_result['maxdate']
+            low_date = self.highest_argument_result['mindate']
+            high_temp = self.highest_argument_result['maxtemp']
+            low_temp = abs(self.highest_argument_result['mintemp'])
 
             high_date = high_date.split("-")  # Separating date into day, month and year
             low_date = low_date.split("-")
@@ -67,9 +67,9 @@ class Weatherman:  # Weatherman Application in one class
             return high_temp, low_temp, high_month, low_month, high_year, low_year
 
         elif mode == "a":
-            high_avg_temp = round(Weatherman.a_result['avgmaxtemp'])
-            low_avg_temp = round(abs(Weatherman.a_result['avgmintemp']))  # abs used to counteract negative results
-            mean_avg_hum = round(Weatherman.a_result['avghumid'])
+            high_avg_temp = round(self.average_argument_result['avgmaxtemp'])
+            low_avg_temp = round(abs(self.average_argument_result['avgmintemp']))  # abs used to counteract negative results
+            mean_avg_hum = round(self.average_argument_result['avghumid'])
 
             return high_avg_temp, low_avg_temp, mean_avg_hum
 
@@ -79,8 +79,8 @@ class Weatherman:  # Weatherman Application in one class
             max_pad = ""
             min_pad = ""
 
-            max_temp = Weatherman.c_result["max_temp"]
-            min_temp = Weatherman.c_result["min_temp"]
+            max_temp = self.chart_form_argument_results["max_temp"]
+            min_temp = self.chart_form_argument_results["min_temp"]
 
             # Run loop for all the days logged
             for i in range(len(max_temp)):
@@ -106,58 +106,66 @@ class Weatherman:  # Weatherman Application in one class
 
             return max_temp, min_temp, max_pads, min_pads
 
+    def generate_report_highest(self):
+        high_temp, low_temp, high_month, low_month, high_year, low_year = self.get_data("e")  # Data to print
+
+        # Making use of format strings to output results
+        print(
+            f"""Report Number {self.report_num}
+                        Highest: {high_temp}C on {high_month} {high_year}
+                        Lowest: {low_temp}C on {low_month} {low_year}
+                            """)
+        self.report_num += 1  # Recording report number to display multiple reports
+
+    def generate_report_average(self):
+        high_avg_temp, low_avg_temp, mean_avg_hum = self.get_data("a")
+        print(
+            f"""Report Number {self.report_num}
+                        Highest Average: {high_avg_temp}C
+                        Lowest Average: {low_avg_temp}C
+                        Average Mean Humidity: {mean_avg_hum}%
+                            """)
+        self.report_num += 1
+
+    def generate_report_chart_form(self):
+        max_temp, min_temp, max_pads, min_pads = self.get_data("c")
+
+        print(f'''Report Number {self.report_num}''')
+
+        # Run loop for all the days logged
+        for i in range(len(max_temp)):
+
+            # If !b, Print according to c argument, else print according to bonus task
+            if self.__chart_form_combined == 0:
+                print(
+                    f"""        
+                        {i + 1} {max_pads[i]} {max_temp[i]}C
+                        {i + 1} {min_pads[i]} {min_temp[i]}C""")
+
+            else:
+                print(
+                    f"""
+                        {i + 1} {min_pads[i]}{max_pads[i]} {min_temp[i]}C - {max_temp[i]}C""")
+
+        self.report_num += 1
+
     # Method to Print report of calculated results
-    def Print_report(self, mode):
+    def print_report(self, mode):
 
         # Checking which argument is true to print accordingly
         if mode == "e":
-            high_temp, low_temp, high_month, low_month, high_year, low_year = self.getData("e")  # Data to print
-
-            # Making use of format strings to output results
-            print(
-            f"""Report Number {Weatherman.report_num}
-                Highest: {high_temp}C on {high_month} {high_year}
-                Lowest: {low_temp}C on {low_month} {low_year}
-                    """)
-            Weatherman.report_num += 1  # Recording report number to display multiple reports
+            self.generate_report_highest()
 
         elif mode == "a":
-            high_avg_temp, low_avg_temp, mean_avg_hum = self.getData("a")
-            print(
-            f"""Report Number {Weatherman.report_num}
-                Highest Average: {high_avg_temp}C
-                Lowest Average: {low_avg_temp}C
-                Average Mean Humidity: {mean_avg_hum}%
-                    """)
-            Weatherman.report_num += 1
+            self.generate_report_average()
 
         elif mode == "c":
-
-            max_temp, min_temp, max_pads, min_pads = self.getData("c")
-
-            print(f'''Report Number {Weatherman.report_num}''')
-
-            # Run loop for all the days logged
-            for i in range(len(max_temp)):
-
-                # If !b, Print according to c argument, else print according to bonus task
-                if self.__b == 0:
-                    print(
-                f"""        
-                {i+1} {max_pads[i]} {max_temp[i]}C
-                {i+1} {min_pads[i]} {min_temp[i]}C""")
-
-                else:
-                    print(
-                f"""
-                {i + 1} {min_pads[i]}{max_pads[i]} {min_temp[i]}C - {max_temp[i]}C""")
-
-            Weatherman.report_num += 1
+            self.generate_report_chart_form()
 
     # Method to read lines from the file and return
-    def Reader(self, mode):
+    def reader(self, mode):
 
-        pth = self.__path + "/weatherfiles/" + Weatherman.file_pre  # path common in all files
+        pth = self.__path + "/weatherfiles/" + Weatherman.file_name_prefix  # path common in all files
         exist = False
         date = ""
 
@@ -205,102 +213,110 @@ class Weatherman:  # Weatherman Application in one class
 
         return mult_lines
 
+    def calculate_highest(self):
+        high_temp = 0
+        low_temp = sys.maxsize
+
+        mult_lines = self.reader("e")  # Reader gives all the lines in file(s)
+
+        for lines in mult_lines:
+            for line in lines[1:]:  # Ignore first line as that is entirely string
+                lst = line.split(',')  # Split line into list with elements separated with by ','
+
+                if lst[1] != "":  # lst[1] contains high temp results in a line
+                    if int(lst[1]) > high_temp:  # code to check highest
+                        high_temp = int(lst[1])
+                        high_date = lst[0]
+
+                if lst[3] != "":  # lst[3] contains low temp results in a line
+                    if int(lst[3]) < low_temp:  # code to check lowest
+                        low_temp = int(lst[3])
+                        low_date = lst[0]
+
+        # Storing the results obtained into a data structure defined in class level dictionaries
+        self.highest_argument_result['maxtemp'] = high_temp
+        self.highest_argument_result['mintemp'] = low_temp
+        self.highest_argument_result['maxdate'] = high_date
+        self.highest_argument_result['mindate'] = low_date
+
+        # Function that prints report according to the mode provided
+        self.print_report("e")
+
+    def calculate_average(self):
+        avg_max_temp = 0
+        avg_min_temp = 0
+        avg_humidity = 0
+
+        count_max_temp = 0  # variables to count number of occurrences to calculate avg
+        count_min_temp = 0
+        count_humidity = 0
+
+        mult_lines = self.reader("a")
+
+        for lines in mult_lines:
+            for line in lines[1:]:
+                lst = line.split(',')
+
+                if lst[1] != "":
+                    avg_max_temp += int(lst[1])  # adding up all the temperature occurrences
+                    count_max_temp += 1
+
+                if lst[3] != "":
+                    avg_min_temp += int(lst[3])
+                    count_min_temp += 1
+
+                if lst[9] != "":  # lst[3] contains mean humidity results in a line
+                    avg_humidity += int(lst[9])
+                    count_humidity += 1
+
+        # Storing average of results obtained in class level dictionaries
+        self.average_argument_result['avgmaxtemp'] = avg_max_temp / count_max_temp
+        self.average_argument_result['avgmintemp'] = avg_min_temp / count_min_temp
+        self.average_argument_result['avghumid'] = avg_humidity / count_humidity
+
+        self.print_report("a")
+
+    def calculate_chart_form_data(self):
+        mult_lines = self.reader("c")
+
+        for lines in mult_lines:
+            for line in lines[1:]:
+                lst = line.split(',')
+
+                if lst[1] != "":
+                    self.chart_form_argument_results["max_temp"].append(int(lst[1]))  # adding to list in dictionary to print them all
+
+                if lst[3] != "":
+                    self.chart_form_argument_results['min_temp'].append(int(lst[3]))
+        self.print_report("c")
+
     # Method that calculates the read data
-    def Calculate_Results(self, mode):
+    def calculate_results(self, mode):
 
         # Calculate according to argument provided
         if mode == "e":
-            high_temp = 0
-            low_temp = sys.maxsize
-
-            mult_lines = self.Reader("e")  # Reader gives all the lines in file(s)
-
-            for lines in mult_lines:
-                for line in lines[1:]:  # Ignore first line as that is entirely string
-                    lst = line.split(',')  # Split line into list with elements separated with by ','
-
-                    if lst[1] != "":  # lst[1] contains high temp results in a line
-                        if int(lst[1]) > high_temp:  # code to check highest
-                            high_temp = int(lst[1])
-                            high_date = lst[0]
-
-                    if lst[3] != "":  # lst[3] contains low temp results in a line
-                        if int(lst[3]) < low_temp:  # code to check lowest
-                            low_temp = int(lst[3])
-                            low_date = lst[0]
-
-            # Storing the results obtained into a data structure defined in class level dictionaries
-            Weatherman.e_result['maxtemp'] = high_temp
-            Weatherman.e_result['mintemp'] = low_temp
-            Weatherman.e_result['maxdate'] = high_date
-            Weatherman.e_result['mindate'] = low_date
-
-            # Function that prints report according to the mode provided
-            self.Print_report("e")
+            self.calculate_highest()
 
         elif mode == "a":
-            avg_max_t = 0
-            avg_min_t = 0
-            avg_humid = 0
-
-            count_max_t = 0  # variables to count number of occurrences to calculate avg
-            count_min_t = 0
-            count_hum = 0
-
-            mult_lines = self.Reader("a")
-
-            for lines in mult_lines:
-                for line in lines[1:]:
-                    lst = line.split(',')
-
-                    if lst[1] != "":
-                        avg_max_t += int(lst[1])  # adding up all the temperature occurrences
-                        count_max_t += 1
-
-                    if lst[3] != "":
-                        avg_min_t += int(lst[3])
-                        count_min_t += 1
-
-                    if lst[9] != "":  # lst[3] contains mean humidity results in a line
-                        avg_humid += int(lst[9])
-                        count_hum += 1
-
-            # Storing average of results obtained in class level dictionaries
-            Weatherman.a_result['avgmaxtemp'] = avg_max_t / count_max_t
-            Weatherman.a_result['avgmintemp'] = avg_min_t / count_min_t
-            Weatherman.a_result['avghumid'] = avg_humid / count_hum
-
-            self.Print_report("a")
+            self.calculate_average()
 
         elif mode == "c":
-
-            mult_lines = self.Reader("c")
-
-            for lines in mult_lines:
-                for line in lines[1:]:
-                    lst = line.split(',')
-
-                    if lst[1] != "":
-                        Weatherman.c_result["max_temp"].append(int(lst[1]))  # adding to list in dictionary to print them all
-
-                    if lst[3] != "":
-                        Weatherman.c_result['min_temp'].append(int(lst[3]))
-            self.Print_report("c")
+            self.calculate_chart_form_data()
 
     # The method main calls to start the code
     def run(self):
-        self.Extract() # call function to extract weatherman zip to path
+        self.extract_files()  # call function to extract weatherman zip to path
 
         # All arguments will be checked to ensure multiple arguments accepted
-        if self.__e is not None:  # check if -e argument was set
-            for e in self.__e:  # code that caters to multiple inputs to one argument to generate multiple reports
+        if self.__highest_argument is not None:  # check if -e argument was set
+            for e in self.__highest_argument:  # code that caters to multiple inputs to one argument to generate multiple reports
                 self.__curr_e = e
-                self.Calculate_Results("e")  # Calculating results one input at a time
-        if self.__a is not None:
-            for a in self.__a:
+                self.calculate_results("e")  # Calculating results one input at a time
+        if self.__average_argument is not None:
+            for a in self.__average_argument:
                 self.__curr_a = a
-                self.Calculate_Results("a")
-        if self.__c is not None:
-            for c in self.__c:
+                self.calculate_results("a")
+        if self.__chart_form_argument is not None:
+            for c in self.__chart_form_argument:
                 self.__curr_c = c
-                self.Calculate_Results("c")
+                self.calculate_results("c")

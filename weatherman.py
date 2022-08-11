@@ -7,21 +7,21 @@ from weather import Weatherman
 parser = argparse.ArgumentParser(description="A weather reporting application")
 parser.add_argument('path',
                     help="Path to file Extraction")
-parser.add_argument('-e', '--Temp_Humidity', nargs='+',
-                    help="Report Highest and Lowest Temp and Humidity")
-parser.add_argument('-a', '--Avg_TH', nargs='+',
-                    help="Report Average Temp and Humidity")
-parser.add_argument('-c', '--chart_TH', nargs='+',
-                    help="Report Highest and Lowest Temp and Humidity in chart form")
-parser.add_argument('-b', '--chart_TH_bonus', type=bool, default=False,  # Bonus task to print Temp together
-                    help="Report Highest and Lowest Temp together chart form")
+parser.add_argument('-e', '--max_results', nargs='+',
+                    help="Report Highest/Lowest Temperature and Highest Humidity")
+parser.add_argument('-a', '--avg_results', nargs='+',
+                    help="Report Average Temperature and Humidity")
+parser.add_argument('-c', '--chart_form', nargs='+',
+                    help="Report Highest/Lowest Temperature and Humidity, separately, in chart form")
+parser.add_argument('-b', '--chart_form_max_min', type=bool, default=False,  # Bonus task to print Temp together
+                    help="Report Highest/Lowest Temperature together in chart form")
 args = parser.parse_args()
 
 
 # main function to run the code
 if __name__ == '__main__':
 
-    w = Weatherman(args.path, args.Temp_Humidity, args.Avg_TH, args.chart_TH, args.chart_TH_bonus)
+    w = Weatherman(args.path, args.max_results, args.avg_results, args.chart_form, args.chart_form_max_min)
     w.run()
 
     # Extract("/Users/musanaeem/Documents/temp")
