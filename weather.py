@@ -80,73 +80,95 @@ class Weatherman:  # Weatherman Application in one class
         with zipfile.ZipFile("weatherfiles.zip", "r") as zip_ref:
             zip_ref.extractall(self.__path)
 
-    # Method to get data to print from class level data structures according to mode passed
-    def get_data(self, mode):
-        if mode == "e":
+    def get_highest_argument_data(self):
+        high_date = self.highest_argument_result["maxdate"]
+        low_date = self.highest_argument_result["mindate"]
+        humid_date = self.highest_argument_result["humiddate"]
 
-            high_date = self.highest_argument_result["maxdate"]
-            low_date = self.highest_argument_result["mindate"]
-            high_temp = self.highest_argument_result["maxtemp"]
-            low_temp = abs(self.highest_argument_result["mintemp"])
+        high_temp = self.highest_argument_result["maxtemp"]
+        low_temp = abs(self.highest_argument_result["mintemp"])
+        humid_percent = self.highest_argument_result["humid"]
 
-            high_date = high_date.split("-")  # Separating date into day, month and year
-            low_date = low_date.split("-")
+        high_date = high_date.split("-")  # Separating date into day, month and year
+        low_date = low_date.split("-")
+        humid_date = humid_date.split("-")
 
-            high_month = Weatherman.months[int(high_date[1])-1]
-            high_year = high_date[2]
-            low_month = Weatherman.months[int(low_date[1])-1]
-            low_year = low_date[2]
+        high_month = Weatherman.months[int(high_date[1]) - 1]
+        high_year = high_date[2]
+        low_month = Weatherman.months[int(low_date[1]) - 1]
+        low_year = low_date[2]
+        humid_month = Weatherman.months[int(humid_date[1]) - 1]
+        humid_year = humid_date[2]
 
-            return high_temp, low_temp, high_month, low_month, high_year, low_year
+        return high_temp, low_temp, high_month, low_month, high_year, low_year, humid_percent, humid_month, humid_year
 
-        elif mode == "a":
-            high_avg_temp = round(self.average_argument_result["avgmaxtemp"])
-            low_avg_temp = round(abs(self.average_argument_result["avgmintemp"]))  # abs used to counteract negative results
-            mean_avg_hum = round(self.average_argument_result["avghumid"])
+    def get_average_argument_data(self):
+        high_avg_temp = round(self.average_argument_result["avgmaxtemp"])
+        low_avg_temp = round(abs(self.average_argument_result["avgmintemp"]))  # abs used to counteract negative results
+        mean_avg_hum = round(self.average_argument_result["avghumid"])
 
-            return high_avg_temp, low_avg_temp, mean_avg_hum
+        return high_avg_temp, low_avg_temp, mean_avg_hum
 
-        elif mode == "c":
-            max_pads = []
-            min_pads = []
+    def get_chart_argument_data(self):
+        max_pads = []
+        min_pads = []
+        max_pad = ""
+        min_pad = ""
+
+        max_temp = self.chart_form_argument_results["max_temp"]
+        min_temp = self.chart_form_argument_results["min_temp"]
+
+        # Run loop for all the days logged
+        for i in range(len(max_temp)):
+
+            # Making '+' Strings to pad to output
+            for j in range(max_temp[i]):
+                max_pad += "+"
+
+            for j in range(abs(min_temp[i])):
+                min_pad += "+"
+
+            # Adding color to strings
+            max_pad = colored(max_pad, "red")
+            min_pad = colored(min_pad, "blue")
+
+            # Adding results to a list to return to print
+            max_pads.append(max_pad)
+            min_pads.append(min_pad)
+
+            # Resetting values for next iteration
             max_pad = ""
             min_pad = ""
 
-            max_temp = self.chart_form_argument_results["max_temp"]
-            min_temp = self.chart_form_argument_results["min_temp"]
+        return max_temp, min_temp, max_pads, min_pads
 
-            # Run loop for all the days logged
-            for i in range(len(max_temp)):
+    # Method to get data to print from class level data structures according to mode passed
+    def get_data(self, mode):
+        if mode == "e":
+            high_temp, low_temp, high_month, low_month, high_year, low_year,\
+                humid_percent, humid_month, humid_year = self.get_highest_argument_data()
 
-                # Making '+' Strings to pad to output
-                for j in range(max_temp[i]):
-                    max_pad += "+"
+            return high_temp, low_temp, high_month, low_month, high_year, low_year,\
+                humid_percent, humid_month, humid_year
 
-                for j in range(abs(min_temp[i])):
-                    min_pad += "+"
+        elif mode == "a":
+            high_avg_temp, low_avg_temp, mean_avg_hum = self.get_average_argument_data()
+            return high_avg_temp, low_avg_temp, mean_avg_hum
 
-                # Adding color to strings
-                max_pad = colored(max_pad, "red")
-                min_pad = colored(min_pad, "blue")
-
-                # Adding results to a list to return to print
-                max_pads.append(max_pad)
-                min_pads.append(min_pad)
-
-                # Resetting values for next iteration
-                max_pad = ""
-                min_pad = ""
-
+        elif mode == "c":
+            max_temp, min_temp, max_pads, min_pads = self.get_chart_argument_data()
             return max_temp, min_temp, max_pads, min_pads
 
     def generate_report_highest(self):
-        high_temp, low_temp, high_month, low_month, high_year, low_year = self.get_data("e")  # Data to print
+        high_temp, low_temp, high_month, low_month, high_year, low_year,\
+            humid_percent, humid_month, humid_year = self.get_data("e")  # Data to print
 
         # Making use of format strings to output results
         print(
             f"""Report Number {self.report_num}
                         Highest: {high_temp}C on {high_month} {high_year}
                         Lowest: {low_temp}C on {low_month} {low_year}
+                        Humidity: {humid_percent}% on {humid_month} {humid_year}
                             """)
         self.report_num += 1  # Recording report number to display multiple reports
 
@@ -197,8 +219,7 @@ class Weatherman:  # Weatherman Application in one class
 
     # Method to read lines from the file and return
 
-    def calculate_highest_helper(self, line, high_temp, low_temp, high_date, low_date):
-
+    def calculate_highest_helper(self, line, high_temp, low_temp, high_humidity, high_date, low_date, humid_date):
 
         lst = line.split(",")  # Split line into list with elements separated with by ','
 
@@ -211,12 +232,19 @@ class Weatherman:  # Weatherman Application in one class
             if int(lst[3]) < low_temp:  # code to check lowest
                 low_temp = int(lst[3])
                 low_date = lst[0]
-        return high_temp, high_date, low_temp, low_date
+
+        if lst[7] != "":
+            if int(lst[7]) > high_humidity:
+                high_humidity = int(lst[7])
+                humid_date = lst[0]
+
+        return high_temp, high_date, low_temp, low_date, high_humidity, humid_date
 
     def calculate_highest(self, date):
         high_temp = 0
+        high_humidity = 0
         low_temp = sys.maxsize
-        high_date, low_date = "", ""
+        high_date, low_date, humid_date = "", "", ""
         exists = False
 
         if len(date) < 2:  # To check if month is inputted or only year
@@ -231,9 +259,10 @@ class Weatherman:  # Weatherman Application in one class
                     line = reader.get_line()
 
                     while line:
-                        high_temp, high_date, low_temp, low_date = self.calculate_highest_helper(line, high_temp,
-                                                                                                 low_temp, high_date,
-                                                                                                 low_date)
+                        high_temp, high_date, low_temp, low_date, high_humidity, humid_date\
+                            = self.calculate_highest_helper(line, high_temp, low_temp,
+                                                            high_humidity, high_date,
+                                                            low_date, humid_date)
                         line = reader.get_line()
             if not exists:
                 raise Exception("Files for this year are not in the system.")
@@ -248,20 +277,19 @@ class Weatherman:  # Weatherman Application in one class
                 line = reader.get_line()
 
                 while line:
-                    high_temp, high_date, low_temp, low_date = self.calculate_highest_helper(line, high_temp,
-                                                                                             low_temp, high_date,
-                                                                                             low_date)
+                    high_temp, high_date, low_temp, low_date, high_humidity, humid_date \
+                        = self.calculate_highest_helper(line, high_temp, low_temp,
+                                                        high_humidity, high_date,
+                                                        low_date, humid_date)
                     line = reader.get_line()
-
-    #    mult_lines = r.get_all_lines()  # Reader gives all the lines in file(s)
-
-
 
         # Storing the results obtained into a data structure defined in class level dictionaries
         self.highest_argument_result["maxtemp"] = high_temp
         self.highest_argument_result["mintemp"] = low_temp
         self.highest_argument_result["maxdate"] = high_date
         self.highest_argument_result["mindate"] = low_date
+        self.highest_argument_result["humid"] = high_humidity
+        self.highest_argument_result["humiddate"] = humid_date
 
         # Function that prints report according to the mode provided
         self.print_report("e")
@@ -334,8 +362,6 @@ class Weatherman:  # Weatherman Application in one class
                                                         avg_min_temp, count_min_temp, avg_humidity, count_humidity)
                     line = reader.get_line()
 
-
-
         # Storing average of results obtained in class level dictionaries
         self.average_argument_result["avgmaxtemp"] = avg_max_temp / count_max_temp
         self.average_argument_result["avgmintemp"] = avg_min_temp / count_min_temp
@@ -396,7 +422,6 @@ class Weatherman:  # Weatherman Application in one class
     # The method main calls to start the code
     def run(self):
         self.extract_files()  # call function to extract weatherman zip to path
-
 
         # All arguments will be checked to ensure multiple arguments accepted
         if self.__highest_argument is not None:  # check if -e argument was set
