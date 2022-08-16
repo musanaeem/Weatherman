@@ -51,15 +51,21 @@ class Weatherman:  # Weatherman Application in one class
 
             raise Exception("Files for this year are not in the system.")
 
-    def check_input_validity(self, date, mode):
+    def validate_date(self, date):
 
         if len(date[0]) != 4:  # To check if year is entered correctly
             raise Exception("Wrong year Format entered")
-        if mode == "c":
-            if len(date) < 2:
-                raise Exception("Please Enter the correct year and month for -c")
 
         return self.file_exists(date)
+
+    def validate_date_charts(self, date):
+        if len(date) < 2:
+            raise Exception("Please Enter the correct year and month for -c")
+        if len(date[0]) != 4:  # To check if year is entered correctly
+            raise Exception("Wrong year Format entered")
+
+        return self.file_exists(date)
+
 
     # Method to extract weather files to specified path
     def extract_files(self):
@@ -174,24 +180,9 @@ class Weatherman:  # Weatherman Application in one class
 
         self.report_num += 1
 
-    # Method to Print report of calculated results
-    def print_report(self, mode, result):
-
-        # Checking which argument is true to print accordingly
-        if mode == "e":
-            self.generate_report_highest(result)
-
-        elif mode == "a":
-            self.generate_report_average(result)
-
-        elif mode == "c":
-            self.generate_report_chart_form(result)
-
     # Method to read lines from the file and return
 
     def calculate_highest_helper(self, dic, high_temp, low_temp, high_humidity, high_date, low_date, humid_date):
-
-        #lst = line.split(",")  # Split line into list with elements separated with by ','
 
         if dic["Max TemperatureC"] != "":  # lst[1] contains high temp results in a line
             if int(dic["Max TemperatureC"]) > high_temp:  # code to check highest
@@ -392,22 +383,43 @@ class Weatherman:  # Weatherman Application in one class
             return results
 
     # Method that calculates the read data
-    def argument_handler(self, curr, argument_type):
-        date = curr.split('/')
-        is_valid = self.check_input_validity(date, argument_type)
+    def highest_argument_handler(self, current_argument):
+        date = current_argument.split('/')
+        is_valid = self.validate_date(date)
 
         result = dict()
 
         if is_valid:
-            if argument_type == "e":
-                result = self.calculate_highest(date)
-            elif argument_type == "a":
-                result = self.calculate_average(date)
-            else:
-                result = self.calculate_chart_form_data(date)
+            result = self.calculate_highest(date)
 
         # Function that prints report according to the mode provided
-        self.print_report(argument_type, result)
+        self.generate_report_highest(result)
+        result.clear()
+
+    def average_argument_handler(self, current_argument):
+        date = current_argument.split('/')
+        is_valid = self.validate_date(date)
+
+        result = dict()
+
+        if is_valid:
+            result = self.calculate_average(date)
+
+        # Function that prints report according to the mode provided
+        self.generate_report_average(result)
+        result.clear()
+
+    def chart_argument_handler(self, current_argument):
+        date = current_argument.split('/')
+        is_valid = self.validate_date_charts(date)
+
+        result = dict()
+
+        if is_valid:
+            result = self.calculate_chart_form_data(date)
+
+        # Function that prints report according to the mode provided
+        self.generate_report_chart_form(result)
         result.clear()
 
     # The method main calls to start the code
@@ -417,12 +429,12 @@ class Weatherman:  # Weatherman Application in one class
         # All arguments will be checked to ensure multiple arguments accepted
         if self.__highest_arguments is not None:  # check if -e argument was set
             for highest_argument in self.__highest_arguments:  # catering multiple inputs argument for multiple reports
-                self.argument_handler(highest_argument, "e")  # Calculating results one input at a time
+                self.highest_argument_handler(highest_argument)  # Calculating results one input at a time
 
         if self.__average_arguments is not None:  # check if -a argument was set
             for average_argument in self.__average_arguments:
-                self.argument_handler(average_argument, "a")
+                self.average_argument_handler(average_argument)
 
         if self.__chart_form_arguments is not None:  # check if -c argument was set
             for chart_form_argument in self.__chart_form_arguments:
-                self.argument_handler(chart_form_argument, "c")
+                self.chart_argument_handler(chart_form_argument)
