@@ -24,12 +24,15 @@ class Weatherman:  # Weatherman Application in one class
         self.__average_arguments = average_argument
         self.__chart_form_arguments = chart_form_argument
         self.__chart_form_combined = chart_form_combined
-        self.files_path_prefix = self.__path + "/weatherfiles/" + Weatherman.file_name_prefix  # path common in all files
+
+        # path common in all files
+        self.files_path_prefix = self.__path + "/weatherfiles/" + Weatherman.file_name_prefix
 
         # Report Number to print
         self.report_num = 1
 
     def file_exists(self, date):
+        date = date.split("/")
 
         if len(date) < 2:  # To check if month is inputted or only year
             for month in self.months:  # Running code for all 12 months and opening files that exist
@@ -38,34 +41,31 @@ class Weatherman:  # Weatherman Application in one class
                 if path.exists(file):
                     return True
 
-            raise Exception("Files for this year are not in the system.")
+            print(f"Files for the year {date[0]} are not in the system.")
 
         else:
             mon = int(date[1])
             if 0 < mon < 13:  # Validate month is in between 1-12
-                file = self.files_path_prefix + date[0] + "_" + self.months[mon - 1] + ".txt"
+                month = self.months[mon - 1]
+                file = self.files_path_prefix + date[0] + "_" + month + ".txt"
                 if path.exists(file):
                     return True
             else:
                 raise Exception("Invalid month entered")
 
-            raise Exception("Files for this year are not in the system.")
+            print(f"Files for the month {month} are not in the system.")
 
-    def validate_date(self, date):
+    def validate_year(self, date):
 
-        if len(date[0]) != 4:  # To check if year is entered correctly
+        if len(date) != 4:  # To check if year is entered correctly
             raise Exception("Wrong year Format entered")
 
-        return self.file_exists(date)
-
-    def validate_date_charts(self, date):
+    def validate_month_and_year(self, date):
+        date = date.split("/")
         if len(date) < 2:
             raise Exception("Please Enter the correct year and month for -c")
         if len(date[0]) != 4:  # To check if year is entered correctly
             raise Exception("Wrong year Format entered")
-
-        return self.file_exists(date)
-
 
     # Method to extract weather files to specified path
     def extract_files(self):
@@ -85,7 +85,6 @@ class Weatherman:  # Weatherman Application in one class
         high_date = high_date.split("-")  # Separating date into day, month and year
         low_date = low_date.split("-")
         humid_date = humid_date.split("-")
-
         high_month = Weatherman.months[int(high_date[1]) - 1]
         high_year = high_date[2]
         low_month = Weatherman.months[int(low_date[1]) - 1]
@@ -201,25 +200,21 @@ class Weatherman:  # Weatherman Application in one class
 
         return high_temp, high_date, low_temp, low_date, high_humidity, humid_date
 
-    def highest_per_month(self, year, month, high_temp, low_temp,
+    def highest_per_month(self, file, high_temp, low_temp,
                           high_humidity, high_date,
                           low_date, humid_date):
 
-        file = self.files_path_prefix + year + "_" + month + ".txt"
+        reader = CSVReader(file)
 
-        if path.exists(file):
-            reader = CSVReader(file)
+        dictionary = reader.get_record()
+        while dictionary:
+            high_temp, high_date, low_temp, low_date, high_humidity, humid_date \
+                = self.calculate_highest_helper(dictionary, high_temp, low_temp,
+                                                high_humidity, high_date,
+                                                low_date, humid_date)
+            dictionary = reader.get_record()
 
-            dictionary = reader.get_line()
-            while dictionary:
-                high_temp, high_date, low_temp, low_date, high_humidity, humid_date \
-                    = self.calculate_highest_helper(dictionary, high_temp, low_temp,
-                                                    high_humidity, high_date,
-                                                    low_date, humid_date)
-                dictionary = reader.get_line()
-
-            return True, high_temp, high_date, low_temp, low_date, high_humidity, humid_date
-        return False, high_temp, high_date, low_temp, low_date, high_humidity, humid_date
+        return high_temp, high_date, low_temp, low_date, high_humidity, humid_date
 
     def calculate_highest(self, date):
         high_temp = 0
@@ -228,31 +223,33 @@ class Weatherman:  # Weatherman Application in one class
         high_date, low_date, humid_date = "", "", ""
         exists = False
 
-        if len(date) < 2:  # To check if month is inputted or only year
-            for month in self.months:  # Running code for all 12 months and opening files that exist
-                if not exists:  # If no files found, keep checking
-                    exists, high_temp, high_date, low_temp, low_date, high_humidity,\
-                     humid_date = self.highest_per_month(date[0], month, high_temp,
-                                                         low_temp, high_humidity, high_date,
-                                                         low_date, humid_date)
+        for month in self.months:  # Running code for all 12 months and opening files that exist
+            year = date
 
-                else:  # If even one file found, set exist as True and ignore that tuple value
-                    _, high_temp, high_date, low_temp, low_date, high_humidity,\
-                     humid_date = self.highest_per_month(date[0], month, high_temp,
-                                                         low_temp, high_humidity, high_date,
-                                                         low_date, humid_date)
-            if not exists:
-                raise Exception("Files for this year are not in the system.")
+            file = self.files_path_prefix + year + "_" + month + ".txt"
 
-        else:
+            if path.exists(file):  # If file exists
+                high_temp, high_date, low_temp, low_date, high_humidity,\
+                 humid_date = self.highest_per_month(file, high_temp,
+                                                     low_temp, high_humidity, high_date,
+                                                     low_date, humid_date)
+                exists = True
+
+        if not exists:
+            print("Files for this year are not in the system.")
+
+        """ else:
             mon = int(date[1])  # Getting month in word form
             if 0 < mon < 13:  # Validate month is in between 1-12
                 month = self.months[mon - 1]
+                year = date[0]
 
-                _, high_temp, high_date, low_temp, low_date, high_humidity, \
-                humid_date = self.highest_per_month(date[0], month, high_temp,
-                                                    low_temp, high_humidity, high_date,
-                                                    low_date, humid_date)
+                file = self.files_path_prefix + year + "_" + month + ".txt"
+
+                high_temp, high_date, low_temp, low_date, high_humidity, \
+                    humid_date = self.highest_per_month(file, high_temp,
+                                                        low_temp, high_humidity, high_date,
+                                                        low_date, humid_date)"""
 
         results = dict()
         # Storing the results obtained into a data structure defined in class level dictionaries
@@ -282,24 +279,21 @@ class Weatherman:  # Weatherman Application in one class
 
         return avg_max_temp, count_max_temp, avg_min_temp, count_min_temp, avg_humidity, count_humidity
 
-    def average_per_month(self, year, month, avg_max_temp, count_max_temp,
+    def average_per_month(self, file, avg_max_temp, count_max_temp,
                           avg_min_temp, count_min_temp, avg_humidity, count_humidity):
 
-        file = self.files_path_prefix + year + "_" + month + ".txt"
 
-        if path.exists(file):
-            reader = CSVReader(file)
+        reader = CSVReader(file)
 
-            dictionary = reader.get_line()
-            while dictionary:
-                avg_max_temp, count_max_temp, avg_min_temp, \
-                    count_min_temp, avg_humidity, count_humidity \
-                    = self.calculate_average_helper(dictionary, avg_max_temp, count_max_temp,
-                                                    avg_min_temp, count_min_temp, avg_humidity, count_humidity)
-                dictionary = reader.get_line()
+        record = reader.get_record()
+        while record:
+            avg_max_temp, count_max_temp, avg_min_temp, \
+                count_min_temp, avg_humidity, count_humidity \
+                = self.calculate_average_helper(record, avg_max_temp, count_max_temp,
+                                                avg_min_temp, count_min_temp, avg_humidity, count_humidity)
+            record = reader.get_record()
 
-            return True, avg_max_temp, count_max_temp, avg_min_temp, count_min_temp, avg_humidity, count_humidity
-        return False, avg_max_temp, count_max_temp, avg_min_temp, count_min_temp, avg_humidity, count_humidity
+        return avg_max_temp, count_max_temp, avg_min_temp, count_min_temp, avg_humidity, count_humidity
 
     def calculate_average(self, date):
         avg_max_temp = 0
@@ -310,7 +304,7 @@ class Weatherman:  # Weatherman Application in one class
         count_min_temp = 0
         count_humidity = 0
 
-        exists = False
+        """exists = False
 
         if len(date) < 2:  # To check if month is inputted or only year
 
@@ -331,16 +325,20 @@ class Weatherman:  # Weatherman Application in one class
                                               count_min_temp, avg_humidity, count_humidity)
 
             if not exists:
-                raise Exception("Files for this year are not in the system.")
+                print("Files for this year are not in the system.")
 
-        else:
-            mon = int(date[1])  # Getting month in word form
-            if 0 < mon < 13:  # Validate month is in between 1-12
-                month = self.months[mon - 1]
+        else:"""
+        year = date[0]
+        mon = int(date[1])  # Getting month in word form
+        if 0 < mon < 13:  # Validate month is in between 1-12
+            month = self.months[mon - 1]
 
-                _, avg_max_temp, count_max_temp, avg_min_temp, \
+            file = self.files_path_prefix + year + "_" + month + ".txt"
+
+            if path.exists(file):
+                avg_max_temp, count_max_temp, avg_min_temp, \
                     count_min_temp, avg_humidity, count_humidity \
-                    = self.average_per_month(date[0], month, avg_max_temp,
+                    = self.average_per_month(file, avg_max_temp,
                                              count_max_temp, avg_min_temp,
                                              count_min_temp, avg_humidity, count_humidity)
 
@@ -375,52 +373,50 @@ class Weatherman:  # Weatherman Application in one class
             file = self.files_path_prefix + date[0] + "_" + self.months[mon - 1] + ".txt"
             reader = CSVReader(file)
 
-            dictionary = reader.get_line()
+            dictionary = reader.get_record()
             while dictionary:
                 results = self.calculate_chart_form_data_helper(dictionary, results)
-                dictionary = reader.get_line()
+                dictionary = reader.get_record()
 
             return results
 
     # Method that calculates the read data
     def highest_argument_handler(self, current_argument):
-        date = current_argument.split('/')
-        is_valid = self.validate_date(date)
+        self.validate_year(current_argument)
 
-        result = dict()
+        is_valid = self.file_exists(current_argument)
 
         if is_valid:
-            result = self.calculate_highest(date)
+            result = self.calculate_highest(current_argument)
 
-        # Function that prints report according to the mode provided
-        self.generate_report_highest(result)
-        result.clear()
+            # Function that prints report according to the mode provided
+            self.generate_report_highest(result)
 
     def average_argument_handler(self, current_argument):
-        date = current_argument.split('/')
-        is_valid = self.validate_date(date)
+        self.validate_month_and_year(current_argument)
+
+        is_valid = self.file_exists(current_argument)
 
         result = dict()
 
         if is_valid:
+            date = current_argument.split("/")
             result = self.calculate_average(date)
 
-        # Function that prints report according to the mode provided
-        self.generate_report_average(result)
-        result.clear()
+            # Function that prints report according to the mode provided
+            self.generate_report_average(result)
 
     def chart_argument_handler(self, current_argument):
-        date = current_argument.split('/')
-        is_valid = self.validate_date_charts(date)
+        self.validate_month_and_year(current_argument)
 
-        result = dict()
+        is_valid = self.file_exists(current_argument)
 
         if is_valid:
+            date = current_argument.split("/")
             result = self.calculate_chart_form_data(date)
 
-        # Function that prints report according to the mode provided
-        self.generate_report_chart_form(result)
-        result.clear()
+            # Function that prints report according to the mode provided
+            self.generate_report_chart_form(result)
 
     # The method main calls to start the code
     def run(self):

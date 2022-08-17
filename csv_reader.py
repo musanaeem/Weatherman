@@ -9,7 +9,7 @@ class CSVReader:
         lst = self.__file.readline()
         self.list_of_names = lst.split(",")
 
-    def get_line(self):
+    def get_record(self):
         line = self.__file.readline()
         if line == "":
             self.__file.close()
