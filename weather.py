@@ -1,6 +1,7 @@
 # Imports written in alphabetical order
-from os import path
 from csv_reader import CSVReader
+from os import path
+import re
 import sys
 from termcolor import colored
 import zipfile
@@ -59,20 +60,25 @@ class Weatherman:  # Weatherman Application in one class
 
         is_valid = self.validate_year(current_argument)
 
-        if is_valid:
-            is_file = self.files_exists_in_year(current_argument)
+        if not is_valid:
+            return
 
-            if is_file:
-                result = self.calculate_highest(current_argument)
+        is_file = self.files_exists_in_year(current_argument)
 
-                # Function that prints report according to the mode provided
-                self.generate_report_highest(result)
-            else:
-                print(f"Files for the year {current_argument} are not in the system.")
+        if not is_file:
+            print(f"Files for the year {current_argument} are not in the system.")
+            return
+
+        result = self.calculate_highest(current_argument)
+
+        # Function that prints report according to the mode provided
+        self.generate_report_highest(result)
 
     def validate_year(self, date):
 
-        if len(date) != 4:  # To check if year is entered correctly
+        x = re.findall("[1-2][0-9][0-9][0-9]", date)
+
+        if x == [] or x[0] != date:
             print("Wrong year Format entered")
             return False
         return True
@@ -87,10 +93,8 @@ class Weatherman:  # Weatherman Application in one class
 
     def get_file_path(self, year, month):
         if month.isdigit():
-            mon = int(month)
-            if 0 < mon < 12:
-                mon = self.months[mon - 1]
-                return self.files_path_prefix + year + "_" + mon + ".txt"
+            mon = self.months[int(month) - 1]
+            return self.files_path_prefix + year + "_" + mon + ".txt"
         else:
             return self.files_path_prefix + year + "_" + month + ".txt"
 
@@ -104,7 +108,7 @@ class Weatherman:  # Weatherman Application in one class
         for month in self.months:  # Running code for all 12 months and opening files that exist
             year = date
 
-            file = self.files_path_prefix + year + "_" + month + ".txt"
+            file = self.get_file_path(year, month)
 
             if path.exists(file):  # If file exists
                 highest_temp, highest_date, lowest_temp, lowest_date, highest_humidity,\
@@ -118,12 +122,14 @@ class Weatherman:  # Weatherman Application in one class
 
         results = dict()
         # Storing the results obtained into a data structure defined in class level dictionaries
-        results["highest_temperature"] = highest_temp
-        results["lowest_temperature"] = lowest_temp
-        results["highest_date"] = highest_date
-        results["lowest_date"] = lowest_date
-        results["humid"] = highest_humidity
-        results["humidity_date"] = humid_date
+        results = {
+            "highest_temperature": highest_temp,
+            "lowest_temperature": lowest_temp,
+            "highest_date": highest_date,
+            "lowest_date": lowest_date,
+            "humid": highest_humidity,
+            "humidity_date": humid_date
+        }
 
         return results
 
@@ -133,38 +139,38 @@ class Weatherman:  # Weatherman Application in one class
 
         reader = CSVReader(file)
 
-        dictionary = reader.get_record()
-        while dictionary:
+        record = reader.get_record()
+        while record:
             highest_temp, highest_date, lowest_temp, lowest_date, highest_humidity, humid_date \
-                = self.calculate_highest_helper(dictionary, highest_temp, lowest_temp,
+                = self.calculate_highest_helper(record, highest_temp, lowest_temp,
                                                 highest_humidity, highest_date,
                                                 lowest_date, humid_date)
-            dictionary = reader.get_record()
+            record = reader.get_record()
 
         return highest_temp, highest_date, lowest_temp, lowest_date, highest_humidity, humid_date
 
-    def calculate_highest_helper(self, dic, highest_temp, lowest_temp, highest_humidity, highest_date, lowest_date, humid_date):
+    def calculate_highest_helper(self, record, highest_temp, lowest_temp, highest_humidity, highest_date, lowest_date, humid_date):
 
-        if dic["Max TemperatureC"] != "":  # lst[1] contains highest temp results in a line
-            if int(dic["Max TemperatureC"]) > highest_temp:  # code to check highest
-                highest_temp = int(dic["Max TemperatureC"])
-                highest_date = dic["PKT"]
+        if record["Max TemperatureC"] != "":  # lst[1] contains highest temp results in a line
+            if int(record["Max TemperatureC"]) > highest_temp:  # code to check highest
+                highest_temp = int(record["Max TemperatureC"])
+                highest_date = record["PKT"]
 
-        if dic["Min TemperatureC"] != "":  # lst[3] contains lowest temp results in a line
-            if int(dic["Min TemperatureC"]) < lowest_temp:  # code to check lowest
-                lowest_temp = int(dic["Min TemperatureC"])
-                lowest_date = dic["PKT"]
+        if record["Min TemperatureC"] != "":  # lst[3] contains lowest temp results in a line
+            if int(record["Min TemperatureC"]) < lowest_temp:  # code to check lowest
+                lowest_temp = int(record["Min TemperatureC"])
+                lowest_date = record["PKT"]
 
-        if dic["Max Humidity"] != "":
-            if int(dic["Max Humidity"]) > highest_humidity:
-                highest_humidity = int(dic["Max Humidity"])
-                humid_date = dic["PKT"]
+        if record["Max Humidity"] != "":
+            if int(record["Max Humidity"]) > highest_humidity:
+                highest_humidity = int(record["Max Humidity"])
+                humid_date = record["PKT"]
 
         return highest_temp, highest_date, lowest_temp, lowest_date, highest_humidity, humid_date
 
     def generate_report_highest(self, result):
         highest_temp, lowest_temp, highest_month, lowest_month, highest_year, lowest_year,\
-            humid_percent, humid_month, humid_year = self.get_highest_argument_data(result)  # Data to print
+            humid_percent, humid_month, humid_year = self.get_highest_report_data(result)  # Data to print
 
         # Making use of format strings to output results
         print(
@@ -175,7 +181,7 @@ class Weatherman:  # Weatherman Application in one class
                             """)
         self.report_num += 1  # Recording report number to display multiple reports
 
-    def get_highest_argument_data(self, result):
+    def get_highest_report_data(self, result):
         highest_date = result["highest_date"]
         lowest_date = result["lowest_date"]
         humid_date = result["humidity_date"]
@@ -200,36 +206,34 @@ class Weatherman:  # Weatherman Application in one class
         date = current_argument.split("/")
         is_valid = self.validate_month_and_year(date)
 
+        if not is_valid:
+            return
+
         file = self.get_file_path(date[0], date[1])
 
-        if is_valid:
-            is_file = self.file_exists(file)
+        is_file = self.file_exists(file)
 
-            if is_file:
-                result = self.calculate_average(file)
+        if not is_file:
+            print(f"Files for the date {current_argument} are not in the system.")
+            return
 
-                # Function that prints report according to the mode provided
-                self.generate_report_average(result)
-            else:
-                print(f"Files for the date {current_argument} are not in the system.")
+        result = self.calculate_average(file)
+
+        # Function that prints report according to the mode provided
+        self.generate_report_average(result)
 
     def validate_month_and_year(self, date):
         if len(date) < 2:
             print("Please Enter the correct year and month for -c")
             return False
-        if len(date[0]) != 4:  # To check if year is entered correctly
-            print("Wrong year Format entered")
-            return False
-        if 0 > int(date[1]) < 13:  # Validate month is in between 1-12
+        if int(date[1]) < 1 or int(date[1]) > 12:  # Validate month is in between 1-12
             print("Wrong month Format entered")
             return False
-        return True
+        is_valid = self.validate_year(date[0])
+        return is_valid
 
     def file_exists(self, file):
-        if path.exists(file):
-            return True
-        else:
-            return False
+        return path.exists(file)
 
     def calculate_average(self, file):
         avg_highest_temperature = 0
@@ -254,31 +258,33 @@ class Weatherman:  # Weatherman Application in one class
         results = dict()
 
         # Storing average of results obtained in class level dictionaries
-        results["avghighest_temperature"] = avg_highest_temperature / count_highest_temperature
-        results["avglowest_temperature"] = avg_lowest_temperature / count_lowest_temperature
-        results["avghumid"] = avg_humidity / count_humidity
+        results = {
+            "avghighest_temperature": avg_highest_temperature / count_highest_temperature,
+            "avglowest_temperature": avg_lowest_temperature / count_lowest_temperature,
+            "avg_humidity": avg_humidity / count_humidity
+        }
 
         return results
 
-    def calculate_average_helper(self, dic, avg_highest_temperature, count_highest_temperature,
+    def calculate_average_helper(self, record, avg_highest_temperature, count_highest_temperature,
                                  avg_lowest_temperature, count_lowest_temperature, avg_humidity, count_humidity):
 
-        if dic["Max TemperatureC"] != "":
-            avg_highest_temperature += int(dic["Max TemperatureC"])  # adding up all the temperature occurrences
+        if record["Max TemperatureC"] != "":
+            avg_highest_temperature += int(record["Max TemperatureC"])  # adding up all the temperature occurrences
             count_highest_temperature += 1
 
-        if dic["Min TemperatureC"] != "":
-            avg_lowest_temperature += int(dic["Min TemperatureC"])
+        if record["Min TemperatureC"] != "":
+            avg_lowest_temperature += int(record["Min TemperatureC"])
             count_lowest_temperature += 1
 
-        if dic[" Mean Humidity"] != "":  # lst[3] contains mean humidity results in a line
-            avg_humidity += int(dic[" Mean Humidity"])
+        if record[" Mean Humidity"] != "":  # lst[3] contains mean humidity results in a line
+            avg_humidity += int(record[" Mean Humidity"])
             count_humidity += 1
 
         return avg_highest_temperature, count_highest_temperature, avg_lowest_temperature, count_lowest_temperature, avg_humidity, count_humidity
 
     def generate_report_average(self, result):
-        highest_avg_temp, lowest_avg_temp, mean_avg_hum = self.get_average_argument_data(result)
+        highest_avg_temp, lowest_avg_temp, mean_avg_hum = self.get_average_report_data(result)
         print(
             f"""Report Number {self.report_num}
                         highest Average: {highest_avg_temp}C
@@ -287,10 +293,10 @@ class Weatherman:  # Weatherman Application in one class
                             """)
         self.report_num += 1
 
-    def get_average_argument_data(self, result):
+    def get_average_report_data(self, result):
         highest_avg_temp = round(int(result["avghighest_temperature"]))
         lowest_avg_temp = round(abs(result["avglowest_temperature"]))  # abs used to counteract negative results
-        mean_avg_hum = round(result["avghumid"])
+        mean_avg_hum = round(result["avg_humidity"])
 
         return highest_avg_temp, lowest_avg_temp, mean_avg_hum
 
@@ -298,23 +304,27 @@ class Weatherman:  # Weatherman Application in one class
         date = current_argument.split("/")
         is_valid = self.validate_month_and_year(date)
 
+        if not is_valid:
+            return
+
         file = self.get_file_path(date[0], date[1])
 
-        if is_valid:
-            is_file = self.file_exists(file)
+        is_file = self.file_exists(file)
 
-            if is_file:
-                result = self.calculate_chart_form_data(file)
+        if not is_file:
+            print(f"Files for the date {current_argument} are not in the system.")
+            return
 
-                # Function that prints report according to the mode provided
-                self.generate_report_chart_form(result)
-            else:
-                print(f"Files for the date {current_argument} are not in the system.")
+        result = self.calculate_chart_form_data(file)
+
+        # Function that prints report according to the mode provided
+        self.generate_report_chart_form(result)
 
     def calculate_chart_form_data(self, file):
-        results = dict()
-        results["highest_temperature"] = []
-        results["lowest_temperature"] = []
+        results = {
+            "highest_temperature": [],
+            "lowest_temperature": []
+        }
 
         reader = CSVReader(file)
 
@@ -325,20 +335,20 @@ class Weatherman:  # Weatherman Application in one class
 
         return results
 
-    def calculate_chart_form_data_helper(self, dic, results):
+    def calculate_chart_form_data_helper(self, record, results):
 
-        if dic["Max TemperatureC"] != "":
+        if record["Max TemperatureC"] != "":
             results["highest_temperature"].append(
-                int(dic["Max TemperatureC"]))  # adding to list in dictionary to print them all
+                int(record["Max TemperatureC"]))  # adding to list in dictionary to print them all
 
-        if dic["Min TemperatureC"] != "":
+        if record["Min TemperatureC"] != "":
             results["lowest_temperature"].append(
-                int(dic["Min TemperatureC"]))
+                int(record["Min TemperatureC"]))
 
         return results
 
     def generate_report_chart_form(self, result):
-        highest_temperature, lowest_temperature, max_pads, min_pads = self.get_chart_argument_data(result)
+        highest_temperature, lowest_temperature, max_pads, min_pads = self.get_chart_report_data(result)
 
         print(f"""Report Number {self.report_num}""")
 
@@ -359,7 +369,7 @@ class Weatherman:  # Weatherman Application in one class
 
         self.report_num += 1
 
-    def get_chart_argument_data(self, result):
+    def get_chart_report_data(self, result):
         max_pads = []
         min_pads = []
         max_pad = ""
