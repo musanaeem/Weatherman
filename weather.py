@@ -76,9 +76,8 @@ class Weatherman:  # Weatherman Application in one class
 
     def validate_year(self, date):
 
-        x = re.findall("[1-2][0-9][0-9][0-9]", date)
-
-        if x == [] or x[0] != date:
+        valid_date = re.match("^[12]\d{3}$", date)
+        if not valid_date:
             print("Wrong year Format entered")
             return False
         return True
@@ -93,10 +92,9 @@ class Weatherman:  # Weatherman Application in one class
 
     def get_file_path(self, year, month):
         if month.isdigit():
-            mon = self.months[int(month) - 1]
-            return self.files_path_prefix + year + "_" + mon + ".txt"
-        else:
-            return self.files_path_prefix + year + "_" + month + ".txt"
+            month = self.months[int(month) - 1]
+
+        return self.files_path_prefix + year + "_" + month + ".txt"
 
     def calculate_highest(self, date):
         highest_temp = 0
@@ -120,7 +118,6 @@ class Weatherman:  # Weatherman Application in one class
         if not exists:
             print("Files for this year are not in the system.")
 
-        results = dict()
         # Storing the results obtained into a data structure defined in class level dictionaries
         results = {
             "highest_temperature": highest_temp,
@@ -255,12 +252,10 @@ class Weatherman:  # Weatherman Application in one class
                                                  avg_lowest_temperature, count_lowest_temperature, avg_humidity, count_humidity)
                 record = reader.get_record()
 
-        results = dict()
-
         # Storing average of results obtained in class level dictionaries
         results = {
-            "avghighest_temperature": avg_highest_temperature / count_highest_temperature,
-            "avglowest_temperature": avg_lowest_temperature / count_lowest_temperature,
+            "avg_highest_temperature": avg_highest_temperature / count_highest_temperature,
+            "avg_lowest_temperature": avg_lowest_temperature / count_lowest_temperature,
             "avg_humidity": avg_humidity / count_humidity
         }
 
@@ -294,8 +289,8 @@ class Weatherman:  # Weatherman Application in one class
         self.report_num += 1
 
     def get_average_report_data(self, result):
-        highest_avg_temp = round(int(result["avghighest_temperature"]))
-        lowest_avg_temp = round(abs(result["avglowest_temperature"]))  # abs used to counteract negative results
+        highest_avg_temp = round(int(result["avg_highest_temperature"]))
+        lowest_avg_temp = round(abs(result["avg_lowest_temperature"]))  # abs used to counteract negative results
         mean_avg_hum = round(result["avg_humidity"])
 
         return highest_avg_temp, lowest_avg_temp, mean_avg_hum
